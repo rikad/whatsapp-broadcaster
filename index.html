@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>WhatsApp Login</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        background: #111b21;
+        color: #e9edef;
+      }
+      .container {
+        text-align: center;
+        padding: 20px;
+        width: 100%;
+        max-width: 400px;
+      }
+      #qrcode {
+        margin: 20px 0;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+      }
+      #status {
+        font-size: 14px;
+        color: #8696a0;
+        margin-top: 10px;
+      }
+      .success {
+        color: #00a884 !important;
+      }
+      .error {
+        color: #ea4335 !important;
+      }
+      button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #00a884;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #008f72;
+      }
+      button:disabled {
+        background: #2a3942;
+        cursor: not-allowed;
+      }
+      #logout-btn {
+        display: none;
+      }
+      #message-panel {
+        display: none;
+        text-align: left;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #8696a0;
+        font-size: 14px;
+      }
+      input, textarea {
+        width: 100%;
+        padding: 10px;
+        background: #2a3942;
+        border: 1px solid #3d4f58;
+        border-radius: 4px;
+        color: #e9edef;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      input:focus, textarea:focus {
+        outline: none;
+        border-color: #00a884;
+      }
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      .hint {
+        font-size: 12px;
+        color: #8696a0;
+        margin-top: 5px;
+      }
+      #result {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 4px;
+        display: none;
+      }
+      #result.success {
+        background: #0c2e26;
+        color: #00a884;
+        display: block;
+      }
+      #result.error {
+        background: #3d1515;
+        color: #ea4335;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Login Section -->
+      <div id="login-section">
+        <h2>WhatsApp Web</h2>
+        <div id="qrcode">
+          <p>Loading...</p>
+        </div>
+        <div id="status">Generating QR Code...</div>
+        <button id="logout-btn" onclick="logout()">Logout</button>
+      </div>
+
+      <!-- Message Panel -->
+      <div id="message-panel">
+        <h2>Send Message</h2>
+
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="text" id="phone" placeholder="e.g., 1234567890" />
+          <p class="hint">Enter number without + or country code prefix</p>
+        </div>
+
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" placeholder="Type your message here..."></textarea>
+        </div>
+
+        <button id="send-btn" onclick="sendMessage()">Send Message</button>
+
+        <div id="result"></div>
+
+        <div style="margin-top: 20px; border-top: 1px solid #2a3942; padding-top: 20px;">
+          <p id="client-info" style="color: #8696a0; font-size: 14px;"></p>
+          <button onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
