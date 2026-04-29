@@ -15,8 +15,8 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const createWindow = () => {
   win = new BrowserWindow({
-    width: 900,
-    height: 750,
+    width: 1100,
+    height: 760,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

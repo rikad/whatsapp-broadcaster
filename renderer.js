@@ -8,7 +8,19 @@ const phoneInput = document.getElementById('phone')
 const messageInput = document.getElementById('message')
 const sendBtn = document.getElementById('send-btn')
 const resultDiv = document.getElementById('result')
-const clientInfo = document.getElementById('client-info')
+const userAvatar = document.getElementById('user-avatar')
+const userName = document.getElementById('user-name')
+const userPhone = document.getElementById('user-phone')
+const pageTitle = document.getElementById('page-title')
+const navItems = document.querySelectorAll('.nav-item')
+const views = {
+  send: document.getElementById('view-send'),
+  broadcast: document.getElementById('view-broadcast'),
+}
+const viewTitles = {
+  send: 'Send Message',
+  broadcast: 'Broadcast',
+}
 
 let qrImage = null
 
@@ -29,20 +41,39 @@ function displayQRCode(dataUrl) {
 // Show message panel
 async function showMessagePanel() {
   loginSection.style.display = 'none'
-  messagePanel.style.display = 'block'
+  messagePanel.style.display = 'flex'
 
-  // Get and display client info
+  // Get and display client info in the sidebar
   const info = await window.whatsapp.getClientInfo()
   if (info) {
-    clientInfo.textContent = `Logged in as: ${info.pushname} (+${info.phoneNumber})`
+    const name = info.pushname || 'WhatsApp User'
+    userName.textContent = name
+    userPhone.textContent = `+${info.phoneNumber}`
+    userAvatar.textContent = (name.trim()[0] || 'W').toUpperCase()
   }
 }
 
 // Show login section
 function showLoginSection() {
-  loginSection.style.display = 'block'
+  loginSection.style.display = 'flex'
   messagePanel.style.display = 'none'
 }
+
+// Switch active view in the app shell
+function switchView(viewName) {
+  if (!views[viewName]) return
+  Object.entries(views).forEach(([name, el]) => {
+    el.classList.toggle('hidden', name !== viewName)
+  })
+  navItems.forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.view === viewName)
+  })
+  pageTitle.textContent = viewTitles[viewName] || ''
+}
+
+navItems.forEach((btn) => {
+  btn.addEventListener('click', () => switchView(btn.dataset.view))
+})
 
 // Handle loading event
 window.whatsapp.onLoading((data) => {
@@ -278,6 +309,8 @@ async function startBroadcast() {
   let successCount = 0
   let failCount = 0
   let skipCount = 0
+
+  broadcastProgress.classList.add('active')
 
   for (let i = 0; i < broadcastRows.length; i++) {
     if (stopRequested) break
