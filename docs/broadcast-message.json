@@ -1,0 +1,34 @@
+[
+  {
+    "customerId": "js7dkw8dqpdwcv9pes45nkr8vx84bqrq",
+    "customerName": "neli",
+    "customerPhone": "+628973107421",
+    "customerAddress": "123",
+    "invoiceCode": "INV-00002-4-2026",
+    "invoiceYear": 2026,
+    "invoiceMonth": 4,
+    "invoiceMonthName": "April",
+    "amount": 100000,
+    "formattedAmount": "Rp 100.000,00",
+    "dueDate": "5/5/2026",
+    "status": "unpaid",
+    "message": "Halo neli, mohon segera melunasi tagihan bulan April 2026 sebesar Rp 100.000,00 sebelum tanggal 5/5/2026. Terima kasih.",
+    "generatedAt": "2026-04-26T07:15:58.054Z"
+  },
+  {
+    "customerId": "js7c464tvvrs09g4w4gq9fvgbn808dzd",
+    "customerName": "rikad customer",
+    "customerPhone": "+6283821307890",
+    "customerAddress": "asd1",
+    "invoiceCode": "INV-00001-4-2026",
+    "invoiceYear": 2026,
+    "invoiceMonth": 4,
+    "invoiceMonthName": "April",
+    "amount": 100000,
+    "formattedAmount": "Rp 100.000,00",
+    "dueDate": "5/5/2026",
+    "status": "unpaid",
+    "message": "Halo rikad customer, mohon segera melunasi tagihan bulan April 2026 sebesar Rp 100.000,00 sebelum tanggal 5/5/2026. Terima kasih.",
+    "generatedAt": "2026-04-26T07:15:58.054Z"
+  }
+]

@@ -23,7 +23,7 @@
         text-align: center;
         padding: 20px;
         width: 100%;
-        max-width: 400px;
+        max-width: 820px;
       }
       #qrcode {
         margin: 20px auto;
@@ -125,6 +125,95 @@
         color: #ea4335;
         display: block;
       }
+      .section-divider {
+        margin-top: 30px;
+        border-top: 1px solid #2a3942;
+        padding-top: 20px;
+      }
+      .file-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .file-row input[type="file"] {
+        padding: 8px;
+        background: #2a3942;
+        border: 1px solid #3d4f58;
+        border-radius: 4px;
+        color: #e9edef;
+        font-size: 13px;
+      }
+      .delay-input {
+        width: 90px !important;
+      }
+      .button-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .secondary-btn {
+        background: #2a3942 !important;
+        color: #e9edef !important;
+      }
+      .secondary-btn:hover {
+        background: #3d4f58 !important;
+      }
+      #broadcast-progress {
+        margin-top: 15px;
+        font-size: 13px;
+        color: #8696a0;
+      }
+      .broadcast-table-wrap {
+        margin-top: 15px;
+        max-height: 320px;
+        overflow-y: auto;
+        border: 1px solid #2a3942;
+        border-radius: 4px;
+      }
+      table.broadcast-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      table.broadcast-table th,
+      table.broadcast-table td {
+        padding: 8px 10px;
+        text-align: left;
+        border-bottom: 1px solid #2a3942;
+      }
+      table.broadcast-table thead th {
+        position: sticky;
+        top: 0;
+        background: #1f2c33;
+        color: #8696a0;
+        font-weight: 600;
+        z-index: 1;
+      }
+      table.broadcast-table tbody tr:hover {
+        background: #1a262d;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-pending { background: #2a3942; color: #8696a0; }
+      .badge-sending { background: #1f3a4d; color: #53bdeb; }
+      .badge-success { background: #0c2e26; color: #00a884; }
+      .badge-failed { background: #3d1515; color: #ea4335; }
+      .badge-skipped { background: #2a2a2a; color: #b89a3d; }
+      .error-cell {
+        color: #ea4335;
+        font-size: 11px;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     </style>
   </head>
   <body>
@@ -136,7 +225,7 @@
           <p>Loading...</p>
         </div>
         <div id="status">Generating QR Code...</div>
-        <button id="logout-btn" onclick="logout()">Logout</button>
+        <button id="logout-btn">Logout</button>
       </div>
 
       <!-- Message Panel -->
@@ -154,13 +243,57 @@
           <textarea id="message" placeholder="Type your message here..."></textarea>
         </div>
 
-        <button id="send-btn" onclick="sendMessage()">Send Message</button>
+        <button id="send-btn">Send Message</button>
 
         <div id="result"></div>
 
+        <div class="section-divider">
+          <h2 style="margin-top: 0;">Broadcast from JSON</h2>
+          <p class="hint" style="margin-top: 0;">
+            Upload a JSON file (array of <code>customerPhone</code> + <code>message</code>).
+            Re-uploading a downloaded report will skip entries already marked
+            <span class="badge badge-success">success</span> and only retry the failed ones.
+          </p>
+
+          <div class="form-group">
+            <div class="file-row">
+              <input type="file" id="json-file" accept="application/json,.json" />
+              <label for="delay-ms" style="margin: 0;">Delay (ms)</label>
+              <input type="number" id="delay-ms" class="delay-input" value="3000" min="500" step="500" />
+            </div>
+            <p id="file-summary" class="hint"></p>
+          </div>
+
+          <div class="button-row">
+            <button id="start-broadcast-btn" disabled>Start Broadcast</button>
+            <button id="stop-broadcast-btn" class="secondary-btn" disabled>Stop</button>
+            <button id="download-report-btn" class="secondary-btn" disabled>Download Report</button>
+            <button id="download-failed-btn" class="secondary-btn" disabled>Download Failed Only</button>
+          </div>
+
+          <div id="broadcast-progress"></div>
+
+          <div id="broadcast-table-wrap" class="broadcast-table-wrap" style="display: none;">
+            <table class="broadcast-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Customer</th>
+                  <th>Phone</th>
+                  <th>Invoice</th>
+                  <th>Status</th>
+                  <th>Sent At</th>
+                  <th>Error</th>
+                </tr>
+              </thead>
+              <tbody id="broadcast-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div style="margin-top: 20px; border-top: 1px solid #2a3942; padding-top: 20px;">
           <p id="client-info" style="color: #8696a0; font-size: 14px;"></p>
-          <button onclick="logout()">Logout</button>
+          <button id="logout-btn-bottom">Logout</button>
         </div>
       </div>
     </div>
