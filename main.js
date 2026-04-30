@@ -46,11 +46,7 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', () => {
-  api.stop()
-  whatsapp.destroy()
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  app.quit()
 })
 
 // IPC handlers for renderer process

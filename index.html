@@ -101,6 +101,17 @@
         width: 232px;
       }
       #qrcode p { margin: 0; color: #00a884; font-weight: 500; }
+      .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #00a884;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
       #status {
         font-size: 13px;
         color: #8696a0;
@@ -478,7 +489,7 @@
         <h2>WhatsApp Sender</h2>
         <p class="subtitle">Scan the QR code with WhatsApp on your phone to log in</p>
         <div id="qrcode">
-          <p>Loading...</p>
+          <div class="spinner"></div>
         </div>
         <div id="status">Generating QR Code...</div>
         <button id="logout-btn">Logout</button>
