@@ -11,7 +11,10 @@
     "build:linux": "electron-builder --linux",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": {
+    "name": "rikad",
+    "email": "rikadfauzi@gmail.com"
+  },
   "license": "ISC",
   "devDependencies": {
     "electron": "^40.3.0",
