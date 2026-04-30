@@ -5,17 +5,58 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^40.3.0"
+    "electron": "^40.3.0",
+    "electron-builder": "^25.1.8"
   },
   "dependencies": {
     "body-parser": "^2.2.2",
     "express": "^5.2.1",
     "qrcode": "^1.5.4",
     "whatsapp-web.js": "^1.34.6"
+  },
+  "build": {
+    "appId": "id.nikreuh.whatsapp-broadcaster",
+    "productName": "WhatsApp Broadcaster",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "api.js",
+      "whatsapp.js",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    }
   }
 }
