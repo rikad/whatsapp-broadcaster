@@ -1,11 +1,55 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js')
 const QRCode = require('qrcode')
 const { EventEmitter } = require('node:events')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const events = new EventEmitter()
 events.setMaxListeners(50)
 
 let client = null
+
+function findSystemChrome() {
+  const candidates = []
+  if (process.platform === 'win32') {
+    const programFiles = process.env['PROGRAMFILES'] || 'C:\\Program Files'
+    const programFilesX86 = process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)'
+    const localAppData = process.env['LOCALAPPDATA'] || ''
+    candidates.push(
+      path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      localAppData && path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(programFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      path.join(programFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    )
+  } else if (process.platform === 'darwin') {
+    candidates.push(
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+    )
+  } else {
+    candidates.push(
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+      '/snap/bin/chromium',
+      '/usr/bin/microsoft-edge',
+    )
+  }
+
+  for (const p of candidates) {
+    if (!p) continue
+    try {
+      if (fs.existsSync(p)) return p
+    } catch {
+      // ignore
+    }
+  }
+  return null
+}
 
 async function initialize() {
   if (client) {
@@ -16,8 +60,24 @@ async function initialize() {
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   }
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
+
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || findSystemChrome()
+  if (executablePath) {
+    puppeteerOptions.executablePath = executablePath
+    console.log(`Using Chrome at: ${executablePath}`)
+  } else {
+    const msg = [
+      'Could not find Google Chrome / Chromium on this machine.',
+      'WhatsApp Broadcaster needs a Chromium-based browser to drive WhatsApp Web.',
+      '',
+      'Fix one of:',
+      '  - Install Google Chrome: https://www.google.com/chrome/',
+      '  - Or set PUPPETEER_EXECUTABLE_PATH to your Chrome/Chromium executable',
+      '    e.g. PUPPETEER_EXECUTABLE_PATH="C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"',
+    ].join('\n')
+    console.error(msg)
+    events.emit('error', 'Chrome / Chromium not found. Install Chrome or set PUPPETEER_EXECUTABLE_PATH.')
+    throw new Error('Chrome not found')
   }
 
   client = new Client({
