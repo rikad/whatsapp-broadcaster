@@ -1,21 +1,22 @@
 # WhatsApp Broadcaster
 
-A desktop application built with Electron that provides a GUI for WhatsApp Web login, bulk broadcasting from a JSON file, and an HTTP API for sending messages programmatically.
+A local web app for WhatsApp Web login, bulk broadcasting from a JSON file, and an HTTP API for sending messages programmatically. Runs as a single Bun-compiled binary that starts a local server and opens the UI in your default browser.
 
 ## Features
 
-- Desktop GUI with QR code login
+- Web UI served at `http://localhost:1111` (auto-opens in your default browser)
 - Persistent session (no need to re-scan QR on restart)
-- Send single text messages from the GUI
+- Send single text messages from the UI
 - Bulk broadcast from a JSON file with per-row status, retry, and report export
 - Send media files (images, documents) via API
-- RESTful API on port 1111 for programmatic use
-- Context isolation and CSP enabled
+- RESTful API on the same port for programmatic use
+- Real-time UI updates via Server-Sent Events
+- Builds into a standalone executable per platform with `bun build --compile`
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [Bun](https://bun.sh/) (recommended) or npm/pnpm
+- [Bun](https://bun.sh/) (v1.1+)
+- Chromium / Google Chrome installed locally. `whatsapp-web.js` drives WhatsApp Web through Puppeteer; the bundled executable does **not** include a browser. If `whatsapp-web.js` can't find Chrome automatically, point it at one with the `PUPPETEER_EXECUTABLE_PATH` env var.
 
 ## Installation
 
@@ -23,29 +24,44 @@ A desktop application built with Electron that provides a GUI for WhatsApp Web l
 bun install
 ```
 
-## Usage
-
-### Start the application
+## Running from source
 
 ```bash
 bun start
 ```
 
+This starts the local server on port 1111 and opens `http://localhost:1111` in your default browser. To suppress auto-open (for example on a headless machine), set `NO_OPEN=1`.
+
 On first launch:
-1. Wait for the QR code to appear.
+1. Wait for the QR code to appear in the browser.
 2. Open WhatsApp on your phone.
 3. Go to **Settings > Linked Devices > Link a Device**.
 4. Scan the QR code.
 
 After successful login, the app shell appears with two views in the sidebar: **Send Message** and **Broadcast**.
 
-### Send a single message (GUI)
+## Building standalone binaries
+
+`bun build --compile` produces a single self-contained executable per platform. The `index.html` and `renderer.js` are embedded into the binary at build time.
+
+```bash
+bun run build           # current platform
+bun run build:mac       # darwin-arm64 + darwin-x64
+bun run build:win       # windows-x64
+bun run build:linux     # linux-x64
+```
+
+Output goes to `dist/`. The CI workflow at `.github/workflows/build.yml` produces all four targets on every push.
+
+> **Note:** The binary still requires Chrome/Chromium at runtime (Puppeteer launches it as a subprocess). Set `PUPPETEER_EXECUTABLE_PATH` if the auto-discovered location is wrong.
+
+## Send a single message (UI)
 
 1. Open the **Send Message** view.
 2. Enter a phone number (digits only — no `+` or spaces).
 3. Type the message and click **Send Message**.
 
-### Broadcast from a JSON file (GUI)
+## Broadcast from a JSON file (UI)
 
 1. Open the **Broadcast** view.
 2. Click **Choose JSON file** and pick a file shaped like [docs/broadcast-message.json](docs/broadcast-message.json).
@@ -54,11 +70,11 @@ After successful login, the app shell appears with two views in the sidebar: **S
 5. Click **Stop** to halt after the current message.
 6. Click **Download report** to export every row (with `broadcastStatus`, `broadcastSentAt`, `broadcastError`, `broadcastMessageId`) as JSON. Click **Download failed only** to export just the failures.
 
-#### Resume / retry semantics
+### Resume / retry semantics
 
 - Rows already marked `broadcastStatus: "success"` in the input file are **skipped** when broadcasting. This means you can re-feed a previously downloaded report to retry only the failed entries — or feed the `*-failed-*.json` export back in directly.
 
-#### Input JSON format
+### Input JSON format
 
 The root must be an array. Each entry must have at least `customerPhone` (string) and `message` (string). Other fields are preserved through to the report. Minimal example:
 
@@ -77,7 +93,7 @@ See [docs/broadcast-message.json](docs/broadcast-message.json) for a fuller exam
 
 ## HTTP API
 
-The API server runs on `http://localhost:1111` and is started automatically alongside the Electron app.
+The API and the UI are served from the same Bun process. The default port is `1111` (override with `PORT`).
 
 ### Check status
 
@@ -124,15 +140,25 @@ curl http://localhost:1111/api/chats
 curl http://localhost:1111/api/info
 ```
 
+### Stream events
+
+The UI subscribes to a Server-Sent Events stream that emits `qr`, `loading`, `authenticated`, `ready`, `auth-failure`, `disconnected`, and `error` events. You can subscribe from any client:
+
+```bash
+curl -N http://localhost:1111/api/events
+```
+
 ### Endpoint summary
 
-| Method | Endpoint          | Description                       |
-|--------|-------------------|-----------------------------------|
-| GET    | `/api/status`     | Check if WhatsApp is ready        |
-| GET    | `/api/info`       | Get client info (phone, name)     |
-| POST   | `/api/send`       | Send a text message               |
-| POST   | `/api/send-media` | Send a media file                 |
-| GET    | `/api/chats`      | List all chats                    |
+| Method | Endpoint          | Description                                  |
+|--------|-------------------|----------------------------------------------|
+| GET    | `/api/status`     | Check if WhatsApp is ready                   |
+| GET    | `/api/info`       | Get client info (phone, name)                |
+| POST   | `/api/send`       | Send a text message                          |
+| POST   | `/api/send-media` | Send a media file                            |
+| GET    | `/api/chats`      | List all chats                               |
+| POST   | `/api/logout`     | Log out and re-show the QR code              |
+| GET    | `/api/events`     | Server-Sent Events stream of client state    |
 
 ### Phone number format
 
@@ -151,11 +177,10 @@ curl http://localhost:1111/api/info
 
 ```
 whatsapp-broadcaster/
-├── main.js       # Electron main process
-├── whatsapp.js   # WhatsApp client logic
-├── api.js        # HTTP API server
-├── preload.js    # Context bridge for security
-├── renderer.js   # UI logic (send + broadcast views)
+├── server.js     # Bun entry: starts HTTP server, opens browser, embeds UI
+├── api.js        # Express HTTP API + SSE stream + static UI routes
+├── whatsapp.js   # WhatsApp client + EventEmitter for state changes
+├── renderer.js   # Browser UI (fetch + EventSource)
 ├── index.html    # UI layout
 ├── docs/
 │   └── broadcast-message.json  # Example broadcast input
