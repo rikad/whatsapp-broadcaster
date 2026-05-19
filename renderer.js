@@ -24,6 +24,27 @@ const viewTitles = {
 
 let qrImage = null
 
+async function apiCall(path, opts = {}) {
+  const init = {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  }
+  if (opts.body !== undefined) {
+    init.body = JSON.stringify(opts.body)
+  }
+  const res = await fetch(path, init)
+  let data = null
+  try {
+    data = await res.json()
+  } catch {
+    data = {}
+  }
+  if (!res.ok) {
+    throw new Error((data && data.error) || `HTTP ${res.status}`)
+  }
+  return data
+}
+
 // Display QR code from data URL
 function displayQRCode(dataUrl) {
   if (qrImage) {
@@ -43,13 +64,16 @@ async function showMessagePanel() {
   loginSection.style.display = 'none'
   messagePanel.style.display = 'flex'
 
-  // Get and display client info in the sidebar
-  const info = await window.whatsapp.getClientInfo()
-  if (info) {
-    const name = info.pushname || 'WhatsApp User'
-    userName.textContent = name
-    userPhone.textContent = `+${info.phoneNumber}`
-    userAvatar.textContent = (name.trim()[0] || 'W').toUpperCase()
+  try {
+    const info = await apiCall('/api/info')
+    if (info) {
+      const name = info.pushname || 'WhatsApp User'
+      userName.textContent = name
+      userPhone.textContent = `+${info.phoneNumber}`
+      userAvatar.textContent = (name.trim()[0] || 'W').toUpperCase()
+    }
+  } catch {
+    // info not yet available; sidebar will stay with placeholders
   }
 }
 
@@ -75,14 +99,18 @@ navItems.forEach((btn) => {
   btn.addEventListener('click', () => switchView(btn.dataset.view))
 })
 
-// Handle loading event
-window.whatsapp.onLoading((data) => {
+// ==================== Server-Sent Events ====================
+
+const evtSource = new EventSource('/api/events')
+
+evtSource.addEventListener('loading', (e) => {
+  const data = JSON.parse(e.data)
   status.textContent = `${data.message || 'Loading'}... ${data.percent}%`
   status.className = ''
 })
 
-// Handle QR code event
-window.whatsapp.onQr((qrDataUrl) => {
+evtSource.addEventListener('qr', (e) => {
+  const qrDataUrl = JSON.parse(e.data)
   showLoginSection()
   displayQRCode(qrDataUrl)
   status.textContent = 'Scan the QR code with WhatsApp'
@@ -90,8 +118,7 @@ window.whatsapp.onQr((qrDataUrl) => {
   logoutBtn.style.display = 'none'
 })
 
-// Handle ready event
-window.whatsapp.onReady(() => {
+evtSource.addEventListener('ready', () => {
   status.textContent = 'Connected to WhatsApp!'
   status.className = 'success'
   qrcode.innerHTML = '<p style="font-size: 48px;">✓</p>'
@@ -99,42 +126,71 @@ window.whatsapp.onReady(() => {
   showMessagePanel()
 })
 
-// Handle authenticated event
-window.whatsapp.onAuthenticated(() => {
+evtSource.addEventListener('authenticated', () => {
   status.textContent = 'Authenticated! Loading...'
   status.className = 'success'
 })
 
-// Handle auth failure event
-window.whatsapp.onAuthFailure((msg) => {
+evtSource.addEventListener('auth-failure', (e) => {
+  const msg = JSON.parse(e.data)
   status.textContent = `Authentication failed: ${msg}`
   status.className = 'error'
 })
 
-// Handle disconnected event
-window.whatsapp.onDisconnected((reason) => {
+evtSource.addEventListener('disconnected', (e) => {
+  const reason = JSON.parse(e.data)
   status.textContent = `Disconnected: ${reason}`
   status.className = 'error'
   logoutBtn.style.display = 'none'
   showLoginSection()
 })
 
-// Handle error event
-window.whatsapp.onError((msg) => {
-  status.textContent = `Error: ${msg}`
-  status.className = 'error'
+evtSource.addEventListener('error', (e) => {
+  // EventSource fires 'error' both for transport errors (no data) and for
+  // named 'error' events from the server (with data). Only react to the latter.
+  if (e && typeof e.data === 'string' && e.data.length > 0) {
+    try {
+      const msg = JSON.parse(e.data)
+      status.textContent = `Error: ${msg}`
+      status.className = 'error'
+    } catch {
+      // ignore parse error
+    }
+  }
 })
 
-// Logout function
+// ==================== Initial state ====================
+
+async function initStatus() {
+  try {
+    const { status: s } = await apiCall('/api/status')
+    if (s === 'ready') {
+      showMessagePanel()
+    } else {
+      showLoginSection()
+    }
+  } catch {
+    showLoginSection()
+  }
+}
+
+initStatus()
+
+// ==================== Actions ====================
+
 async function logout() {
-  await window.whatsapp.logout()
   status.textContent = 'Logging out...'
   status.className = ''
   logoutBtn.style.display = 'none'
   showLoginSection()
+  try {
+    await apiCall('/api/logout', { method: 'POST' })
+  } catch (err) {
+    status.textContent = `Logout failed: ${err.message}`
+    status.className = 'error'
+  }
 }
 
-// Send message function
 async function sendMessage() {
   const phone = phoneInput.value.trim()
   const message = messageInput.value.trim()
@@ -148,7 +204,10 @@ async function sendMessage() {
   resultDiv.style.display = 'none'
 
   try {
-    const result = await window.whatsapp.sendMessage(phone, message)
+    const result = await apiCall('/api/send', {
+      method: 'POST',
+      body: { phone, message },
+    })
     showResult(`Message sent successfully! ID: ${result.id}`, 'success')
     phoneInput.value = ''
     messageInput.value = ''
@@ -179,7 +238,6 @@ const broadcastProgress = document.getElementById('broadcast-progress')
 const broadcastTableWrap = document.getElementById('broadcast-table-wrap')
 const broadcastTbody = document.getElementById('broadcast-tbody')
 
-// rows[i] = original entry + broadcastStatus / broadcastError / broadcastSentAt / broadcastMessageId
 let broadcastRows = []
 let broadcastSourceName = 'broadcast-report'
 let stopRequested = false
@@ -328,7 +386,10 @@ async function startBroadcast() {
       `Sending ${i + 1} of ${broadcastRows.length}... (success: ${successCount}, failed: ${failCount}, skipped: ${skipCount})`
 
     try {
-      const result = await window.whatsapp.sendMessage(row.customerPhone, row.message)
+      const result = await apiCall('/api/send', {
+        method: 'POST',
+        body: { phone: row.customerPhone, message: row.message },
+      })
       row.broadcastStatus = 'success'
       row.broadcastMessageId = result && result.id ? result.id : null
       row.broadcastSentAt = new Date().toISOString()
@@ -343,7 +404,6 @@ async function startBroadcast() {
     updateBroadcastRow(i)
     downloadFailedBtn.disabled = !broadcastRows.some((r) => r.broadcastStatus === 'failed')
 
-    // Don't sleep after the last item
     const isLast = i === broadcastRows.length - 1
     if (!isLast && !stopRequested) {
       await sleep(delayMs)
