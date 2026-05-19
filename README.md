@@ -16,7 +16,10 @@ A local web app for WhatsApp Web login, bulk broadcasting from a JSON file, and 
 ## Prerequisites
 
 - [Bun](https://bun.sh/) (v1.1+)
-- Chromium / Google Chrome installed locally. `whatsapp-web.js` drives WhatsApp Web through Puppeteer; the bundled executable does **not** include a browser. If `whatsapp-web.js` can't find Chrome automatically, point it at one with the `PUPPETEER_EXECUTABLE_PATH` env var.
+- **Google Chrome (or Chromium / Microsoft Edge) installed locally.** `whatsapp-web.js` drives WhatsApp Web through Puppeteer; the standalone binary does **not** ship a browser. The app auto-detects Chrome in the standard install locations on Windows, macOS, and Linux. If yours is somewhere unusual, set `PUPPETEER_EXECUTABLE_PATH`:
+  - Windows: `set PUPPETEER_EXECUTABLE_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe`
+  - macOS: `export PUPPETEER_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`
+  - Linux: `export PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome`
 
 ## Installation
 
