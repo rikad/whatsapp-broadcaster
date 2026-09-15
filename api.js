@@ -3,7 +3,7 @@ const bodyParser = require('body-parser')
 
 let whatsapp = null
 let apiServer = null
-let staticAssets = { indexHtml: null, rendererJs: null }
+let staticAssets = { indexHtml: null, rendererJs: null, iconSvg: null }
 
 const sseClients = new Set()
 const lastEvents = {}
@@ -167,6 +167,16 @@ apiApp.get('/', (req, res) => {
     res.send(staticAssets.indexHtml)
   } else {
     res.sendFile(require('path').join(__dirname, 'index.html'))
+  }
+})
+
+apiApp.get('/favicon.svg', (req, res) => {
+  res.set('Content-Type', 'image/svg+xml; charset=utf-8')
+  res.set('Cache-Control', 'public, max-age=86400')
+  if (staticAssets.iconSvg) {
+    res.send(staticAssets.iconSvg)
+  } else {
+    res.sendFile(require('path').join(__dirname, 'assets', 'icon.svg'))
   }
 })
 

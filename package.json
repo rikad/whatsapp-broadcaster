@@ -9,7 +9,9 @@
     "build": "bun build --compile --external typescript ./server.js --outfile dist/whatsapp-broadcaster",
     "build:mac": "bun build --compile --external typescript --target=bun-darwin-arm64 ./server.js --outfile dist/whatsapp-broadcaster-darwin-arm64 && bun build --compile --external typescript --target=bun-darwin-x64 ./server.js --outfile dist/whatsapp-broadcaster-darwin-x64",
     "build:win": "bun build --compile --external typescript --target=bun-windows-x64 ./server.js --outfile dist/whatsapp-broadcaster-windows-x64.exe",
+    "build:win:release": "bun build --compile --external typescript --target=bun-windows-x64 ./server.js --outfile dist/whatsapp-broadcaster-windows-x64.exe --windows-icon=assets/icon.ico --windows-title=\"WhatsApp Broadcaster\" --windows-publisher=\"rikad\" --windows-description=\"WhatsApp broadcasting tool served as a local web UI\" --windows-version=1.0.0.0",
     "build:linux": "bun build --compile --external typescript --target=bun-linux-x64 ./server.js --outfile dist/whatsapp-broadcaster-linux-x64",
+    "build:icons": "./scripts/build-icons.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {
