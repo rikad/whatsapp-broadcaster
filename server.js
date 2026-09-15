@@ -1,5 +1,6 @@
 import indexHtml from "./index.html" with { type: "text" };
 import rendererJs from "./renderer.js" with { type: "text" };
+import iconSvg from "./assets/icon.svg" with { type: "text" };
 import whatsapp from "./whatsapp.js";
 import api from "./api.js";
 import { spawn } from "node:child_process";
@@ -7,7 +8,7 @@ import { spawn } from "node:child_process";
 const PORT = parseInt(process.env.PORT, 10) || 1111;
 
 api.setWhatsapp(whatsapp);
-api.setStaticAssets({ indexHtml, rendererJs });
+api.setStaticAssets({ indexHtml, rendererJs, iconSvg });
 api.bindEvents(whatsapp.events);
 api.start(PORT);
 

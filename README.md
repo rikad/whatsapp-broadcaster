@@ -45,7 +45,7 @@ After successful login, the app shell appears with two views in the sidebar: **S
 
 ## Building standalone binaries
 
-`bun build --compile` produces a single self-contained executable per platform. The `index.html` and `renderer.js` are embedded into the binary at build time.
+`bun build --compile` produces a single self-contained executable per platform. The `index.html`, `renderer.js` and the app icon are embedded into the binary at build time.
 
 ```bash
 bun run build           # current platform
@@ -55,6 +55,26 @@ bun run build:linux     # linux-x64
 ```
 
 Output goes to `dist/`. The CI workflow at `.github/workflows/build.yml` produces all four targets on every push.
+
+### Windows executable icon
+
+Bun can only stamp an `.exe` with its icon and version metadata when the build runs **on Windows**, so `build:win` (usable from any host) leaves the default Bun icon and `build:win:release` applies `assets/icon.ico` plus the product name, publisher and version:
+
+```bash
+bun run build:win:release   # windows-x64, branded — must run on Windows
+```
+
+CI handles this by building the Windows target on a `windows-latest` runner, so released `.exe` files always carry the icon.
+
+### Regenerating the icon
+
+`assets/icon.svg` is the source of truth; `icon-small.svg` and `icon-tiny.svg` are simplified variants used at 32/48 px and 16/24 px, where the full mark would blur. To rebuild the rasters after editing any of them:
+
+```bash
+bun run build:icons    # needs Google Chrome + ImageMagick
+```
+
+This writes `icon.png`, `icon-512.png`, `icon.ico` (16-256 px) and `icon.icns`.
 
 > **Note:** The binary still requires Chrome/Chromium at runtime (Puppeteer launches it as a subprocess). Set `PUPPETEER_EXECUTABLE_PATH` if the auto-discovered location is wrong.
 
@@ -185,6 +205,9 @@ whatsapp-broadcaster/
 ├── whatsapp.js   # WhatsApp client + EventEmitter for state changes
 ├── renderer.js   # Browser UI (fetch + EventSource)
 ├── index.html    # UI layout
+├── assets/       # App icon: SVG sources + generated .png/.ico/.icns
+├── scripts/
+│   └── build-icons.sh          # Regenerates the icon rasters from the SVGs
 ├── docs/
 │   └── broadcast-message.json  # Example broadcast input
 ├── package.json
