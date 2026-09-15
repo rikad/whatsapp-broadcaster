@@ -27,13 +27,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build (macOS arm64)
-        run: bun build --compile --external typescript --target=bun-darwin-arm64 ./server.js --outfile dist/whatsapp-broadcaster-darwin-arm64
+        run: bun build --compile --external typescript --external @aws-sdk/client-s3 --target=bun-darwin-arm64 ./server.js --outfile dist/whatsapp-broadcaster-darwin-arm64
 
       - name: Build (macOS x64)
-        run: bun build --compile --external typescript --target=bun-darwin-x64 ./server.js --outfile dist/whatsapp-broadcaster-darwin-x64
+        run: bun build --compile --external typescript --external @aws-sdk/client-s3 --target=bun-darwin-x64 ./server.js --outfile dist/whatsapp-broadcaster-darwin-x64
 
       - name: Build (Linux x64)
-        run: bun build --compile --external typescript --target=bun-linux-x64 ./server.js --outfile dist/whatsapp-broadcaster-linux-x64
+        run: bun build --compile --external typescript --external @aws-sdk/client-s3 --target=bun-linux-x64 ./server.js --outfile dist/whatsapp-broadcaster-linux-x64
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
