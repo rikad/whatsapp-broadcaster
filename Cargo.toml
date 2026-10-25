@@ -1,0 +1,36 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/api", "crates/app"]
+
+[workspace.package]
+version = "2.0.0"
+edition = "2024"
+rust-version = "1.94"
+license = "ISC"
+authors = ["rikad <rikadfauzi@gmail.com>"]
+
+[workspace.dependencies]
+wb-core = { path = "crates/core" }
+wb-api = { path = "crates/api" }
+
+# `simd` (a default feature) needs nightly; everything else from the defaults.
+whatsapp-rust = { version = "=0.7.0", default-features = false, features = ["sqlite-storage", "tokio-transport", "tokio-runtime", "tokio-native", "ureq-client"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "net"] }
+tokio-util = "0.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+anyhow = "1"
+log = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+directories = "6"
+mime_guess = "2"
+qrcode = { version = "0.14", default-features = false, features = ["image"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+axum = "0.8"
+futures = "0.3"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
