@@ -1,0 +1,22 @@
+[package]
+name = "whatsapp-broadcaster"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "WhatsApp broadcasting tool"
+
+[dependencies]
+wb-core.workspace = true
+wb-api.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+log.workspace = true
+chrono.workspace = true
+directories.workspace = true
+image.workspace = true
+gpui-kit = "0.7"
+env_logger = "0.11"
+
+[build-dependencies]
+winresource = "0.1"

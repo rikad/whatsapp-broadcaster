@@ -1,233 +1,175 @@
 # WhatsApp Broadcaster
 
-A local web app for WhatsApp Web login, bulk broadcasting from a JSON file, and an HTTP API for sending messages programmatically. Runs as a single Bun-compiled binary that starts a local server and opens the UI in your default browser.
+A native Windows app for linking a WhatsApp account, sending single messages, broadcasting from a JSON file, and sending messages from scripts through a local HTTP API.
+
+Version 2 is a rewrite in Rust: [whatsapp-rust](https://github.com/oxidezap/whatsapp-rust) talks to WhatsApp directly and [gpui](https://www.gpui.rs/) (through [GPUI Kit](https://gpui-kit.com)) draws the window. **No Chrome, browser or runtime is needed.** v1 (Bun + whatsapp-web.js) lives on the `v1` branch.
 
 ## Features
 
-- Web UI served at `http://localhost:1111` (auto-opens in your default browser)
-- Persistent session (no need to re-scan QR on restart)
-- Send single text messages from the UI
-- Bulk broadcast from a JSON file with per-row status, retry, and report export
-- Send media files (images, documents) via API
-- RESTful API on the same port for programmatic use
-- Real-time UI updates via Server-Sent Events
-- Builds into a standalone executable per platform with `bun build --compile`
+- Native desktop window: link by QR code or by phone-number pairing code
+- Persistent session: no re-scan on restart
+- Send a single text message
+- Broadcast from a JSON file with per-row status, stop, resume and report export
+- Local HTTP API on `127.0.0.1:1111`, route-compatible with v1, plus a Server-Sent Events stream
+- One portable `.exe`
 
-## Prerequisites
+## Requirements
 
-- [Bun](https://bun.sh/) (v1.1+)
-- **Google Chrome (or Chromium / Microsoft Edge) installed locally.** `whatsapp-web.js` drives WhatsApp Web through Puppeteer; the standalone binary does **not** ship a browser. The app auto-detects Chrome in the standard install locations on Windows, macOS, and Linux. If yours is somewhere unusual, set `PUPPETEER_EXECUTABLE_PATH`:
-  - Windows: `set PUPPETEER_EXECUTABLE_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe`
-  - macOS: `export PUPPETEER_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`
-  - Linux: `export PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome`
+- Windows 10 or 11, x64
+- A graphics driver that supports DirectX 11 (any normal PC; some VMs and Remote Desktop sessions may not)
 
-## Installation
+## Install
 
-```bash
-bun install
-```
-
-## Running from source
-
-```bash
-bun start
-```
-
-This starts the local server on port 1111 and opens `http://localhost:1111` in your default browser. To suppress auto-open (for example on a headless machine), set `NO_OPEN=1`.
+Download `whatsapp-broadcaster-windows-x64.exe` from the [latest release](../../releases/latest) and run it. Windows SmartScreen may warn because the file is not code-signed; choose **More info → Run anyway**.
 
 On first launch:
-1. Wait for the QR code to appear in the browser.
-2. Open WhatsApp on your phone.
-3. Go to **Settings > Linked Devices > Link a Device**.
-4. Scan the QR code.
 
-After successful login, the app shell appears with two views in the sidebar: **Send Message** and **Broadcast**.
+1. Wait for the QR code.
+2. On your phone open WhatsApp → **Settings → Linked devices → Link a device**.
+3. Scan the code. Or click **Link with phone number instead**, enter your number with country code and type the 8-character code on your phone.
 
-## Building standalone binaries
+The app then shows **Send Message** and **Broadcast** in the sidebar. Only one copy of the app can run at a time.
 
-`bun build --compile` produces a single self-contained executable per platform. The `index.html`, `renderer.js` and the app icon are embedded into the binary at build time.
+## Send a single message
 
-```bash
-bun run build           # current platform
-bun run build:mac       # darwin-arm64 + darwin-x64
-bun run build:win       # windows-x64
-bun run build:linux     # linux-x64
-```
-
-Output goes to `dist/`. The CI workflow at `.github/workflows/build.yml` produces all four targets on every push.
-
-### Windows executable icon
-
-Bun can only stamp an `.exe` with its icon and version metadata when the build runs **on Windows**, so `build:win` (usable from any host) leaves the default Bun icon and `build:win:release` applies `assets/icon.ico` plus the product name, publisher and version:
-
-```bash
-bun run build:win:release   # windows-x64, branded — must run on Windows
-```
-
-CI handles this by building the Windows target on a `windows-latest` runner, so released `.exe` files always carry the icon.
-
-### Regenerating the icon
-
-`assets/icon.svg` is the source of truth; `icon-small.svg` and `icon-tiny.svg` are simplified variants used at 32/48 px and 16/24 px, where the full mark would blur. To rebuild the rasters after editing any of them:
-
-```bash
-bun run build:icons    # needs Google Chrome + ImageMagick
-```
-
-This writes `icon.png`, `icon-512.png`, `icon.ico` (16-256 px) and `icon.icns`.
-
-> **Note:** The binary still requires Chrome/Chromium at runtime (Puppeteer launches it as a subprocess). Set `PUPPETEER_EXECUTABLE_PATH` if the auto-discovered location is wrong.
-
-## Send a single message (UI)
-
-1. Open the **Send Message** view.
-2. Enter a phone number (digits only — no `+` or spaces).
+1. Open **Send Message**.
+2. Enter the phone number with country code. Spaces, `+` and dashes are ignored.
 3. Type the message and click **Send Message**.
 
-## Broadcast from a JSON file (UI)
+Numbers are checked first; a number without WhatsApp fails with "… is not on WhatsApp".
 
-1. Open the **Broadcast** view.
-2. Click **Choose JSON file** and pick a file shaped like [docs/broadcast-message.json](docs/broadcast-message.json).
-3. Set the per-message delay (minimum 500 ms, default 3000 ms) — used to throttle sending and reduce the chance of being rate-limited.
-4. Click **Start broadcast**. Each row updates live with `pending` → `sending` → `success` / `failed`.
-5. Click **Stop** to halt after the current message.
-6. Click **Download report** to export every row (with `broadcastStatus`, `broadcastSentAt`, `broadcastError`, `broadcastMessageId`) as JSON. Click **Download failed only** to export just the failures.
+## Broadcast from a JSON file
 
-### Resume / retry semantics
+1. Open **Broadcast** and click **Choose JSON file…**. See [docs/broadcast-message.json](docs/broadcast-message.json).
+2. Set the delay between messages (minimum 500 ms, default 3000 ms) to reduce the chance of being rate-limited.
+3. Click **Start Broadcast**. Each row goes `pending` → `sending` → `success` / `failed`.
+4. **Stop** ends the run after the current message.
+5. **Download Report** saves every row with `broadcastStatus`, `broadcastSentAt`, `broadcastError` and `broadcastMessageId`. **Download Failed Only** saves just the failures.
 
-- Rows already marked `broadcastStatus: "success"` in the input file are **skipped** when broadcasting. This means you can re-feed a previously downloaded report to retry only the failed entries — or feed the `*-failed-*.json` export back in directly.
+### Input format
 
-### Input JSON format
+The root must be an array. Only two keys are read from each entry:
 
-The root must be an array. Each entry must have at least `customerPhone` (string) and `message` (string). Other fields are preserved through to the report. Minimal example:
+| Key | Rule |
+|---|---|
+| `message` | Required, non-empty string |
+| `phone` | Phone number with country code. Required unless `customerPhone` is present |
+| `customerPhone` | Fallback used only when `phone` is missing or empty (v1 files keep working) |
+
+Every other field is ignored by the app and copied unchanged into the report.
 
 ```json
 [
-  {
-    "customerName": "Jane Doe",
-    "customerPhone": "+628123456789",
-    "invoiceCode": "INV-0001",
-    "message": "Hello Jane, your invoice INV-0001 is due."
-  }
+  { "phone": "628123456789", "message": "Hello Jane, your invoice INV-0001 is due.", "invoiceCode": "INV-0001" }
 ]
 ```
 
-See [docs/broadcast-message.json](docs/broadcast-message.json) for a fuller example.
+### Resume and retry
+
+Rows already marked `"broadcastStatus": "success"` are skipped. To retry failures, load a downloaded report (or the `-failed-` export) again.
 
 ## HTTP API
 
-The API and the UI are served from the same Bun process. The default port is `1111` (override with `PORT`).
+The API runs inside the app on `http://127.0.0.1:1111` and only accepts connections from the same PC. Set the `PORT` environment variable to use another port. If the port is taken, the app still runs and shows a notice that the API is off.
 
-### Check status
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/status` | `{"status": "ready" \| "not_ready", "info": …}` |
+| GET | `/api/info` | `{"phoneNumber", "pushname"}` |
+| POST | `/api/send` | `{"phone", "message"}` → send a text |
+| POST | `/api/send-media` | `{"phone", "mediaPath", "caption"?}` → send a file from this PC |
+| GET | `/api/chats` | Groups the account is in: `[{"id", "name", "isGroup": true}]` |
+| POST | `/api/logout` | Unlink and show a new QR code |
+| GET | `/api/events` | Server-Sent Events stream |
 
 ```bash
 curl http://localhost:1111/api/status
-```
 
-```json
-{
-  "status": "ready",
-  "info": {
-    "phoneNumber": "1234567890",
-    "platform": "android",
-    "pushname": "Your Name"
-  }
-}
-```
-
-### Send text message
-
-```bash
 curl -X POST http://localhost:1111/api/send \
   -H "Content-Type: application/json" \
-  -d '{"phone":"1234567890","message":"Hello from API!"}'
-```
+  -d '{"phone":"628123456789","message":"Hello from the API"}'
 
-### Send media
-
-```bash
 curl -X POST http://localhost:1111/api/send-media \
   -H "Content-Type: application/json" \
-  -d '{"phone":"1234567890","mediaPath":"/path/to/image.jpg","caption":"Check this out"}'
+  -d '{"phone":"628123456789","mediaPath":"C:\\Users\\me\\Pictures\\promo.jpg","caption":"Check this out"}'
 ```
 
-### Get all chats
+A successful send returns `{"success": true, "id", "to", "timestamp"}`. Images, videos and audio are sent as media; anything else is sent as a document with its file name.
 
-```bash
-curl http://localhost:1111/api/chats
-```
+### Events
 
-### Get client info
-
-```bash
-curl http://localhost:1111/api/info
-```
-
-### Stream events
-
-The UI subscribes to a Server-Sent Events stream that emits `qr`, `loading`, `authenticated`, `ready`, `auth-failure`, `disconnected`, and `error` events. You can subscribe from any client:
+`/api/events` emits `qr` (PNG data URL), `pair-code`, `authenticated`, `ready`, `auth-failure`, `disconnected` and `error`. A new subscriber first receives the events matching the current state.
 
 ```bash
 curl -N http://localhost:1111/api/events
 ```
 
-### Endpoint summary
+### Status codes
 
-| Method | Endpoint          | Description                                  |
-|--------|-------------------|----------------------------------------------|
-| GET    | `/api/status`     | Check if WhatsApp is ready                   |
-| GET    | `/api/info`       | Get client info (phone, name)                |
-| POST   | `/api/send`       | Send a text message                          |
-| POST   | `/api/send-media` | Send a media file                            |
-| GET    | `/api/chats`      | List all chats                               |
-| POST   | `/api/logout`     | Log out and re-show the QR code              |
-| GET    | `/api/events`     | Server-Sent Events stream of client state    |
+- `200` success
+- `400` missing fields or invalid phone number
+- `404` unknown endpoint
+- `500` send failed (for example the number is not on WhatsApp)
+- `503` WhatsApp not connected yet
 
-### Phone number format
+## Where data is stored
 
-- Digits only — no `+` symbol or spaces.
-- The app strips non-digits and appends `@c.us` for individual chats.
+Everything lives in `%APPDATA%\WhatsApp Broadcaster\`:
 
-### HTTP status codes
+- `whatsapp*.db`: the linked session. Delete the folder to start over.
+- `logs\whatsapp-broadcaster.log`: log of the last run.
 
-- `200` — Success
-- `400` — Bad Request (missing parameters)
-- `404` — Endpoint not found
-- `500` — Internal Server Error
-- `503` — Service Unavailable (client not ready)
+## Changes from v1
 
-## Project structure
+- Windows only. macOS and Linux users stay on v1.
+- No Chrome needed.
+- Everyone scans the QR code once more; v1 sessions cannot be migrated.
+- Broadcast input uses `phone` (with `customerPhone` as fallback); the table no longer shows Name and Invoice columns.
+- `/api/send`: `id` is a plain message ID (e.g. `3EB0…`) and `to` ends in `@s.whatsapp.net`.
+- `/api/chats` lists groups only, without `unreadCount`. `info.platform` and the `loading` event are gone.
+- The API listens on localhost only. `NO_OPEN` is gone (there is no browser to open).
 
-```
-whatsapp-broadcaster/
-├── server.js     # Bun entry: starts HTTP server, opens browser, embeds UI
-├── api.js        # Express HTTP API + SSE stream + static UI routes
-├── whatsapp.js   # WhatsApp client + EventEmitter for state changes
-├── renderer.js   # Browser UI (fetch + EventSource)
-├── index.html    # UI layout
-├── assets/       # App icon: SVG sources + generated .png/.ico/.icns
-├── scripts/
-│   └── build-icons.sh          # Regenerates the icon rasters from the SVGs
-├── docs/
-│   └── broadcast-message.json  # Example broadcast input
-├── package.json
-└── README.md
+## Development
+
+Needs Rust (the version is pinned in `rust-toolchain.toml`; rustup installs it automatically). gpui is cross-platform, so the app also runs on macOS for UI work, but releases are built and tested on Windows.
+
+```bash
+cargo run -p whatsapp-broadcaster          # the app
+cargo test --workspace                     # unit and API tests
+cargo run -p wb-core --example spike -- 628123456789 "Hello" [file]   # link by terminal QR and send, no UI
 ```
 
-## Session storage
-
-Sessions are stored locally using the `LocalAuth` strategy from `whatsapp-web.js`:
+Set `WB_DATA_DIR` to keep a development session separate from the installed app.
 
 ```
-.wwebjs_auth/
-.wwebjs_cache/
+crates/
+├── core/   # WhatsApp service, phone normalization, media, broadcast engine (no UI)
+├── api/    # axum HTTP API + SSE
+└── app/    # gpui desktop app (Windows .exe; icon embedded by build.rs)
+assets/     # icon sources and rasters
+docs/       # example broadcast file, migration plan
 ```
 
-Both directories are gitignored.
+### Releases
+
+Bump `version` in `Cargo.toml`, commit, then run on a Mac:
+
+```bash
+./scripts/release.sh                 # clippy + tests, build, tag v<version>, publish
+./scripts/release.sh --no-publish    # build into dist/ only
+```
+
+It builds `whatsapp-broadcaster-macos-universal.zip` (an ad-hoc signed `.app` for Apple Silicon and Intel) and `whatsapp-broadcaster-linux-x64.tar.gz` (in Docker), pushes the tag and creates the GitHub release. Needs Docker and a logged-in `gh`.
+
+Windows can't be cross-compiled from macOS: gpui's release build compiles its DirectX shaders with `fxc.exe`, which only runs on Windows. On a Windows PC, run `cargo build --release --locked -p whatsapp-broadcaster`, rename `target\release\whatsapp-broadcaster.exe` to `whatsapp-broadcaster-windows-x64.exe` and attach it with `gh release upload v<version> whatsapp-broadcaster-windows-x64.exe`.
+
+### Regenerating the icon
+
+`assets/icon.svg` is the source; `icon-small.svg` and `icon-tiny.svg` are simplified variants for small sizes. `./scripts/build-icons.sh` (needs Google Chrome and ImageMagick) rewrites `icon.png`, `icon-512.png`, `icon.ico` and `icon.icns`.
 
 ## Disclaimer
 
-This project uses [`whatsapp-web.js`](https://github.com/pedroslopez/whatsapp-web.js), an unofficial library that automates WhatsApp Web. It is not affiliated with or endorsed by WhatsApp. Use of automated messaging may violate WhatsApp's Terms of Service — use at your own risk.
+This project uses whatsapp-rust, an unofficial client not affiliated with or endorsed by WhatsApp or Meta. Automated messaging may violate WhatsApp's Terms of Service and can get a number banned. Use at your own risk.
 
 ## License
 

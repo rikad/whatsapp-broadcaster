@@ -2,7 +2,7 @@
   {
     "customerId": "js7dkw8dqpdwcv9pes45nkr8vx84bqrq",
     "customerName": "neli",
-    "customerPhone": "+628973107421",
+    "phone": "+628973107421",
     "customerAddress": "123",
     "invoiceCode": "INV-00002-4-2026",
     "invoiceYear": 2026,
@@ -18,7 +18,7 @@
   {
     "customerId": "js7c464tvvrs09g4w4gq9fvgbn808dzd",
     "customerName": "rikad customer",
-    "customerPhone": "+6283821307890",
+    "phone": "+6283821307890",
     "customerAddress": "asd1",
     "invoiceCode": "INV-00001-4-2026",
     "invoiceYear": 2026,
