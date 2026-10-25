@@ -152,7 +152,16 @@ docs/       # example broadcast file, migration plan
 
 ### Releases
 
-Push a `v*` tag. CI (`.github/workflows/build.yml`) runs clippy and tests on Windows, builds the release `.exe` and publishes it.
+Bump `version` in `Cargo.toml`, commit, then run on a Mac:
+
+```bash
+./scripts/release.sh                 # clippy + tests, build, tag v<version>, publish
+./scripts/release.sh --no-publish    # build into dist/ only
+```
+
+It builds `whatsapp-broadcaster-macos-universal.zip` (an ad-hoc signed `.app` for Apple Silicon and Intel) and `whatsapp-broadcaster-linux-x64.tar.gz` (in Docker), pushes the tag and creates the GitHub release. Needs Docker and a logged-in `gh`.
+
+Windows can't be cross-compiled from macOS: gpui's release build compiles its DirectX shaders with `fxc.exe`, which only runs on Windows. On a Windows PC, run `cargo build --release --locked -p whatsapp-broadcaster`, rename `target\release\whatsapp-broadcaster.exe` to `whatsapp-broadcaster-windows-x64.exe` and attach it with `gh release upload v<version> whatsapp-broadcaster-windows-x64.exe`.
 
 ### Regenerating the icon
 
