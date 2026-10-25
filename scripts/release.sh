@@ -3,8 +3,8 @@
 # GitHub release for the version in Cargo.toml (tag v<version>).
 #
 # Windows cannot be cross-compiled from macOS (gpui compiles its DirectX shaders
-# with fxc.exe, which only runs on a Windows host). Build the .exe on a Windows
-# PC and attach it with: gh release upload v<version> whatsapp-broadcaster-windows-x64.exe
+# with fxc.exe, which only runs on a Windows host). After this script publishes,
+# run scripts\release-windows.ps1 on a Windows PC to build and attach the .exe.
 #
 # Usage: ./scripts/release.sh [--no-publish] [--skip-checks] [--only macos|linux]
 #   --no-publish   build into dist/ only; no tag, no upload
@@ -95,7 +95,7 @@ if want macos; then
 EOF
   # Ad-hoc signature: unsigned arm64 apps are reported as "damaged" after download.
   codesign --force --deep --sign - "$app"
-  ditto -c -k --keepParent "$app" "$dist/$bin-macos-universal.zip"
+  ditto -c -k --norsrc --noextattr --noacl --keepParent "$app" "$dist/$bin-macos-universal.zip"
   rm -rf "$app"
 fi
 
@@ -131,4 +131,4 @@ else
 fi
 echo
 echo "Published $(gh release view "$tag" --json url -q .url)"
-echo "Windows is not included; build it on Windows and run: gh release upload $tag whatsapp-broadcaster-windows-x64.exe"
+echo "Windows is not included; on a Windows PC run: .\\scripts\\release-windows.ps1 -Tag $tag"

@@ -161,7 +161,13 @@ Bump `version` in `Cargo.toml`, commit, then run on a Mac:
 
 It builds `whatsapp-broadcaster-macos-universal.zip` (an ad-hoc signed `.app` for Apple Silicon and Intel) and `whatsapp-broadcaster-linux-x64.tar.gz` (in Docker), pushes the tag and creates the GitHub release. Needs Docker and a logged-in `gh`.
 
-Windows can't be cross-compiled from macOS: gpui's release build compiles its DirectX shaders with `fxc.exe`, which only runs on Windows. On a Windows PC, run `cargo build --release --locked -p whatsapp-broadcaster`, rename `target\release\whatsapp-broadcaster.exe` to `whatsapp-broadcaster-windows-x64.exe` and attach it with `gh release upload v<version> whatsapp-broadcaster-windows-x64.exe`.
+Windows can't be cross-compiled from macOS: gpui's release build compiles its DirectX shaders with `fxc.exe`, which only runs on Windows. After the Mac script has published, run this on a Windows PC to build the tagged commit and attach `whatsapp-broadcaster-windows-x64.exe` to the same release:
+
+```powershell
+.\scripts\release-windows.ps1              # newest v* tag; or -Tag v2.0.0, -NoPublish
+```
+
+It needs Visual Studio Build Tools with the **Desktop development with C++** workload (MSVC and the Windows SDK, which has `fxc.exe`), rustup, git, and a logged-in `gh`. If scripts are blocked, run it with `powershell -ExecutionPolicy Bypass -File scripts\release-windows.ps1`.
 
 ### Regenerating the icon
 

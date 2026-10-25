@@ -23,7 +23,8 @@ RUN set -eux; \
 
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo PATH=/usr/local/cargo/bin:$PATH
 RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal \
-      --default-toolchain "$RUST_VERSION" --target x86_64-unknown-linux-gnu
+      --default-toolchain "$RUST_VERSION" --target x86_64-unknown-linux-gnu \
+      --component rustfmt,clippy
 
 # Only take effect when cross-compiling; harmless on an amd64 host.
 ENV CC_x86_64_unknown_linux_gnu=x86_64-linux-gnu-gcc \
